@@ -53,7 +53,7 @@ pub fn write_rplacepixel<W: Write>(rplacepixel: &RPlacePixel, write: &mut W) {
 }
 
 pub fn read_rplacepixel<R: Read>(read: &mut R) -> Result<RPlacePixel, std::io::Error> {
-    let mut vec: Vec<u8> = vec![0; 16];
+    let mut vec: Vec<u8> = vec![0; 15];
     read.read_exact(&mut vec)?;
 
     Ok(GeomWithData::new(
