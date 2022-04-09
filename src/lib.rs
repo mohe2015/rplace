@@ -40,9 +40,9 @@ pub fn read_rplacepixel<R: Read>(read: &mut R) -> Result<RPlacePixel, std::io::E
     let mut vec: Vec<u8> = vec![0; 16];
     read.read_exact(&mut vec)?;
 
-    Ok(GeomWithData::new([i16::from_ne_bytes(vec[0..1].try_into().unwrap()), i16::from_ne_bytes(vec[2..3].try_into().unwrap())], RPlacePixelData {
-        user: u32::from_ne_bytes(vec[4..7].try_into().unwrap()),
-        timestamp_millis: u16::from_ne_bytes(vec[8..9].try_into().unwrap()),
+    Ok(GeomWithData::new([i16::from_ne_bytes(vec[0..=1].try_into().unwrap()), i16::from_ne_bytes(vec[2..=3].try_into().unwrap())], RPlacePixelData {
+        user: u32::from_ne_bytes(vec[4..=7].try_into().unwrap()),
+        timestamp_millis: u16::from_ne_bytes(vec[8..=9].try_into().unwrap()),
         timestamp_seconds: vec[10],
         timestamp_minutes: vec[11],
         timestamp_hours: vec[12],
