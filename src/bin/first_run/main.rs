@@ -1,12 +1,14 @@
 use std::{io::{self, BufReader}, hash::BuildHasherDefault};
+use ciborium::ser::into_writer;
 use flate2::read::GzDecoder;
-use rmp_serde::{Serializer};
+use rplace::RPlacePixel;
 use time::{PrimitiveDateTime, macros::format_description, format_description::FormatItem};
 use std::io::prelude::*;
 use std::fs::File;
 use rustc_hash::{FxHashMap, FxHasher};
 use base64::{decode_config_slice, STANDARD};
-use serde::{Serialize};
+
+// https://crates.io/crates/bincode
 
 // cat /home/pi/2022_place_canvas_history.csv.gzip | gunzip | wc -c
 // 21714634193
@@ -16,14 +18,14 @@ use serde::{Serialize};
 
 // log2(32*2000*2000*10381162*4*24*60*60)
 
-const format1: &[FormatItem] = format_description!("[year]-[month]-[day] [hour]:[minute]:[second].[subsecond] UTC");
-const format2: &[FormatItem] = format_description!("[year]-[month]-[day] [hour]:[minute]:[second] UTC");
+const FORMAT1: &[FormatItem] = format_description!("[year]-[month]-[day] [hour]:[minute]:[second].[subsecond] UTC");
+const FORMAT2: &[FormatItem] = format_description!("[year]-[month]-[day] [hour]:[minute]:[second] UTC");
 
 fn main() -> io::Result<()> {
     let mut output = Vec::new();
 
     let stdout = io::stdout();
-    let mut handle = stdout.lock();
+    let handle = stdout.lock();
 
     let f = File::open("/home/pi/2022_place_canvas_history.csv.gzip")?;
     let mut gz = BufReader::new(GzDecoder::new(f));
@@ -43,7 +45,7 @@ fn main() -> io::Result<()> {
         }
         number_of_bytes_read += line_length;
         if number_of_bytes_read % (256 * 1024) == 0 {
-            eprintln!("{} %", f64::from(u32::try_from(number_of_bytes_read/1024).unwrap()) / f64::from(21205697));
+            eprintln!("{}", f64::from(u32::try_from(number_of_bytes_read/1024).unwrap()) / f64::from(21205697));
         }
 
         // unfortunately already timestamps can have two digit or three digit milliseconds so we need to split the data. userid and colors should be the same though
@@ -53,7 +55,7 @@ fn main() -> io::Result<()> {
 
         //writeln!(handle, "{}", timestamp)?;
 
-        let timestamp = PrimitiveDateTime::parse(timestamp, &format1).or_else(|_| PrimitiveDateTime::parse(timestamp, &format2)).unwrap();
+        let timestamp = PrimitiveDateTime::parse(timestamp, &FORMAT1).or_else(|_| PrimitiveDateTime::parse(timestamp, &FORMAT2)).unwrap();
 
         let timestamp = timestamp.assume_utc();
 
@@ -134,8 +136,7 @@ fn main() -> io::Result<()> {
         line.clear();
     }
 
-
-    output.serialize(&mut Serializer::new(File::create("test.bin")?)).unwrap();
+    into_writer(&output, File::create("test.bin")?).unwrap();
 
     //eprintln!("{:#?}", pixel_colors);
     eprintln!("user count: {}", next_user_id);

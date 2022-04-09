@@ -1,5 +1,6 @@
 use std::{io, fs::File};
 
+use ciborium::de::from_reader;
 use rplace::RPlacePixel;
 
 
@@ -8,7 +9,7 @@ use rplace::RPlacePixel;
 fn main() -> io::Result<()> {
     let bf = File::open("test.bin")?;
 
-    let result: Vec<RPlacePixel> = rmp_serde::from_read(bf).unwrap();
+    let result: Vec<RPlacePixel> = from_reader(bf).unwrap();
 
     println!("{:?}", result);
 

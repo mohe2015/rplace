@@ -11,7 +11,7 @@ rustc-hash = "1"
 base64 = "0.13"
 time = { version = "0.3", features = ["parsing", "macros"] }
 serde = { version = "1", features = ["derive"] }
-rmp-serde = "1"
+ciborium = "0.2.0"
 
 [profile.release]
 codegen-units = 1
