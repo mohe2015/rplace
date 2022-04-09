@@ -10,8 +10,6 @@ use std::collections::HashMap;
 
 // lines() probably allocates
 
-// replace the gunzip implementation at it needs 50% of the runtime (probably not avoidable)
-
 fn main() -> io::Result<()> {
     let stdout = io::stdout();
     let mut handle = stdout.lock();
@@ -51,11 +49,11 @@ fn main() -> io::Result<()> {
         let coordinate_x = &it.next().unwrap()[1..];
         let coordinate_y = it.next().unwrap();
         let coordinate_y = &coordinate_y[..coordinate_y.len()-1];
-        write!(handle, "{},{},{},{},{}", timestamp, user_id, pixel_color, coordinate_x, coordinate_y)?;
+        //write!(handle, "{},{},{},{},{}", timestamp, user_id, pixel_color, coordinate_x, coordinate_y)?;
     }
 
     eprintln!("{:#?}", pixel_colors);
-    eprintln!("user count: {}", next_user_id);
+    //eprintln!("user count: {}", next_user_id);
 
     Ok(())
 }
