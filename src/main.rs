@@ -1,5 +1,5 @@
 use std::io::{self, BufReader};
-use flate2::bufread::GzDecoder;
+use flate2::bufread::MultiGzDecoder;
 use std::io::prelude::*;
 use std::fs::File;
 use std::collections::HashMap;
@@ -8,7 +8,7 @@ fn main() -> io::Result<()> {
     let f = File::open("/home/pi/2022_place_canvas_history.csv.gzip")?;
     let f = BufReader::new(f);
 
-    let mut gz = BufReader::new(GzDecoder::new(f));
+    let gz = BufReader::new(MultiGzDecoder::new(f));
 
     let mut next_user_id = -1;
     let mut next_pixel_color = -1;
@@ -16,7 +16,7 @@ fn main() -> io::Result<()> {
     let mut pixel_colors = HashMap::new();
     for line in gz.lines().skip(1) {
         let line = line.unwrap();
-        let mut it = line.split(",");
+        let mut it = line.split(',');
         let timestamp = it.next().unwrap();
         let user_id = it.next().unwrap();
         let user_id = user_ids.entry(user_id.to_string()).or_insert_with(|| { next_user_id += 1; next_user_id });
@@ -27,6 +27,9 @@ fn main() -> io::Result<()> {
         let coordinate_y = &coordinate_y[..coordinate_y.len()-1];
         println!("{},{},{},{},{}", timestamp, user_id, pixel_color, coordinate_x, coordinate_y);
     }
+
+    eprintln!("{:#?}", pixel_colors);
+    eprintln!("user count: {}", next_user_id);
 
     Ok(())
 }
