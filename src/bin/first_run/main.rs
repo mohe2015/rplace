@@ -1,12 +1,12 @@
 use std::{io::{self, BufReader}, hash::BuildHasherDefault};
 use flate2::read::GzDecoder;
-use rmp_serde::Serializer;
+use rmp_serde::{Serializer};
 use time::{PrimitiveDateTime, macros::format_description, format_description::FormatItem};
 use std::io::prelude::*;
 use std::fs::File;
 use rustc_hash::{FxHashMap, FxHasher};
 use base64::{decode_config_slice, STANDARD};
-use serde::{Serialize, Deserialize};
+use serde::{Serialize};
 
 // cat /home/pi/2022_place_canvas_history.csv.gzip | gunzip | wc -c
 // 21714634193
@@ -15,25 +15,6 @@ use serde::{Serialize, Deserialize};
 // user count: 10.381.162
 
 // log2(32*2000*2000*10381162*4*24*60*60)
-
-#[derive(Serialize, Deserialize, Debug)]
-struct RPlacePixel {
-    user: u32,
-    x: u16,
-    y: u16,
-    timestamp_millis: u16,
-    timestamp_seconds: u8,
-    timestamp_minutes: u8,
-    timestamp_hours: u8,
-    timestamp_days: u8,
-    color: u8,
-
-    // color 8 bits - 32
-    // x 16 bits - 2000
-    // y 16 bits - 2000
-    // timestamp 32 bits (only these few days) 4 days * 24 hours * 60 minutes * 60 seconds * 1000 milliseconds
-    // user 32 bits
-}
 
 const format1: &[FormatItem] = format_description!("[year]-[month]-[day] [hour]:[minute]:[second].[subsecond] UTC");
 const format2: &[FormatItem] = format_description!("[year]-[month]-[day] [hour]:[minute]:[second] UTC");
