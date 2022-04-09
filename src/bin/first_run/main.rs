@@ -1,6 +1,6 @@
 use std::{io::{self, BufReader, BufWriter}, hash::BuildHasherDefault};
 use flate2::read::GzDecoder;
-use rplace::{RPlacePixel, RPlacePixelData};
+use rplace::{RPlacePixel, RPlacePixelData, write_rplacepixel};
 use rstar::primitives::GeomWithData;
 use time::{PrimitiveDateTime, macros::format_description, format_description::FormatItem};
 use std::io::prelude::*;
@@ -118,7 +118,7 @@ fn main() -> io::Result<()> {
         let coordinate_y = it.next().unwrap();
         let coordinate_y = std::str::from_utf8(&coordinate_y[..coordinate_y.len()-2]).unwrap().parse::<i16>().unwrap();
 
-        let value = RPlacePixel(GeomWithData::new([coordinate_x, coordinate_y], RPlacePixelData {
+        let value = GeomWithData::new([coordinate_x, coordinate_y], RPlacePixelData {
             user: user_id,
             timestamp_millis: timestamp.millisecond(),
             timestamp_seconds: timestamp.second(),
@@ -126,9 +126,9 @@ fn main() -> io::Result<()> {
             timestamp_hours: timestamp.hour(),
             timestamp_days: timestamp.day(),
             color: pixel_color,
-        }));
+        });
 
-        value.write(&mut output_file);
+        write_rplacepixel(&value, &mut output_file);
 
         //writeln!(handle, "{},{},{},{},{}", timestamp, user_id, pixel_color, coordinate_x, coordinate_y)?;
         line.clear();
