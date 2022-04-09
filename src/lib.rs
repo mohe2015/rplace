@@ -1,4 +1,6 @@
-use rstar::Point;
+use std::io::{Write, Read};
+
+use rstar::{Point, primitives::GeomWithData};
 use serde::{Serialize, Deserialize};
 
 
@@ -6,7 +8,7 @@ use serde::{Serialize, Deserialize};
 
 // TODO FIXME partialeq probably wrong
 #[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq)]
-pub struct RPlacePixel {
+pub struct RPlacePixelData {
     pub user: u32,
     pub timestamp_millis: u16,
     pub timestamp_seconds: u8,
@@ -20,4 +22,36 @@ pub struct RPlacePixel {
     // y 16 bits - 2000
     // timestamp 32 bits (only these few days) 4 days * 24 hours * 60 minutes * 60 seconds * 1000 milliseconds
     // user 32 bits
+}
+
+pub struct RPlacePixel(pub GeomWithData<[i16; 2], RPlacePixelData>);
+
+impl RPlacePixel {
+
+    pub fn write<W: Write>(&self, write: &mut W) {
+        write.write(&self.0.geom()[0].to_ne_bytes()).unwrap();
+        write.write(&self.0.geom()[1].to_ne_bytes()).unwrap();
+        write.write(&self.0.data.user.to_ne_bytes()).unwrap();
+        write.write(&self.0.data.timestamp_millis.to_ne_bytes()).unwrap();
+        write.write(&self.0.data.timestamp_seconds.to_ne_bytes()).unwrap();
+        write.write(&self.0.data.timestamp_minutes.to_ne_bytes()).unwrap();
+        write.write(&self.0.data.timestamp_hours.to_ne_bytes()).unwrap();
+        write.write(&self.0.data.timestamp_days.to_ne_bytes()).unwrap();
+        write.write(&self.0.data.color.to_ne_bytes()).unwrap();
+    }
+
+    pub fn parse<R: Read>(read: &mut R) -> RPlacePixel {
+        let mut vec: Vec<u8> = vec![0; 16];
+        read.read_exact(&mut vec).unwrap();
+
+        RPlacePixel(GeomWithData::new([i16::from_ne_bytes(vec[0..1].try_into().unwrap()), i16::from_ne_bytes(vec[2..3].try_into().unwrap())], RPlacePixelData {
+            user: u32::from_ne_bytes(vec[4..7].try_into().unwrap()),
+            timestamp_millis: u16::from_ne_bytes(vec[8..9].try_into().unwrap()),
+            timestamp_seconds: vec[10],
+            timestamp_minutes: vec[11],
+            timestamp_hours: vec[12],
+            timestamp_days: vec[13],
+            color: vec[14],
+        }))
+    }
 }

@@ -8,7 +8,7 @@ fn main() -> io::Result<()> {
 
     let mut result: Vec<GeomWithData<[i16; 2], RPlacePixel>> = bincode::deserialize_from(bf).unwrap();
 
-    result.sort_unstable_by_key(|v| (v.timestamp_days, v.timestamp_hours, v.timestamp_minutes, v.timestamp_seconds, v.timestamp_millis));    
+    result.sort_unstable_by_key(|v| (v.data.timestamp_days, v.data.timestamp_hours, v.data.timestamp_minutes, v.data.timestamp_seconds, v.data.timestamp_millis));    
 
     println!("{:?}", result);
 

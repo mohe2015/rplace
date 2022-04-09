@@ -1,6 +1,6 @@
-use std::{io::{self, BufReader}, hash::BuildHasherDefault};
+use std::{io::{self, BufReader, BufWriter}, hash::BuildHasherDefault};
 use flate2::read::GzDecoder;
-use rplace::RPlacePixel;
+use rplace::{RPlacePixel, RPlacePixelData};
 use rstar::primitives::GeomWithData;
 use time::{PrimitiveDateTime, macros::format_description, format_description::FormatItem};
 use std::io::prelude::*;
@@ -22,7 +22,7 @@ const FORMAT1: &[FormatItem] = format_description!("[year]-[month]-[day] [hour]:
 const FORMAT2: &[FormatItem] = format_description!("[year]-[month]-[day] [hour]:[minute]:[second] UTC");
 
 fn main() -> io::Result<()> {
-    let mut output = Vec::with_capacity(160353105);
+    let mut output_file = BufWriter::new(File::create("test.bin")?);
 
     let stdout = io::stdout();
     let handle = stdout.lock();
@@ -118,7 +118,7 @@ fn main() -> io::Result<()> {
         let coordinate_y = it.next().unwrap();
         let coordinate_y = std::str::from_utf8(&coordinate_y[..coordinate_y.len()-2]).unwrap().parse::<i16>().unwrap();
 
-        let value = GeomWithData::new([coordinate_x, coordinate_y], RPlacePixel {
+        let value = RPlacePixel(GeomWithData::new([coordinate_x, coordinate_y], RPlacePixelData {
             user: user_id,
             timestamp_millis: timestamp.millisecond(),
             timestamp_seconds: timestamp.second(),
@@ -126,15 +126,14 @@ fn main() -> io::Result<()> {
             timestamp_hours: timestamp.hour(),
             timestamp_days: timestamp.day(),
             color: pixel_color,
-        });
+        }));
 
-        output.push(value);
+        value.write(&mut output_file);
 
         //writeln!(handle, "{},{},{},{},{}", timestamp, user_id, pixel_color, coordinate_x, coordinate_y)?;
         line.clear();
     }
 
-    bincode::serialize_into(File::create("test.bin")?, &output).unwrap();
 
     //eprintln!("{:#?}", pixel_colors);
     eprintln!("user count: {}", next_user_id);
