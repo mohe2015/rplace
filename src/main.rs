@@ -1,28 +1,55 @@
-use std::io::{self, BufReader};
+use std::{io::{self, BufReader}, hash::BuildHasherDefault};
 use flate2::read::GzDecoder;
+use rmp_serde::Serializer;
+use time::{PrimitiveDateTime, macros::format_description, format_description::FormatItem};
 use std::io::prelude::*;
 use std::fs::File;
-use rustc_hash::FxHashMap;
+use rustc_hash::{FxHashMap, FxHasher};
 use base64::{decode_config_slice, STANDARD};
+use serde::{Serialize, Deserialize};
 
 // cat /home/pi/2022_place_canvas_history.csv.gzip | gunzip | wc -c
 // 21714634193
 // ~22 GB
 
-// 1m46.864s
+// user count: 10.381.162
 
-// hex parsing: 
+// log2(32*2000*2000*10381162*4*24*60*60)
+
+#[derive(Serialize, Deserialize, Debug)]
+struct RPlacePixel {
+    user: u32,
+    x: u16,
+    y: u16,
+    timestamp_millis: u16,
+    timestamp_seconds: u8,
+    timestamp_minutes: u8,
+    timestamp_hours: u8,
+    timestamp_days: u8,
+    color: u8,
+
+    // color 8 bits - 32
+    // x 16 bits - 2000
+    // y 16 bits - 2000
+    // timestamp 32 bits (only these few days) 4 days * 24 hours * 60 minutes * 60 seconds * 1000 milliseconds
+    // user 32 bits
+}
+
+const format1: &[FormatItem] = format_description!("[year]-[month]-[day] [hour]:[minute]:[second].[subsecond] UTC");
+const format2: &[FormatItem] = format_description!("[year]-[month]-[day] [hour]:[minute]:[second] UTC");
 
 fn main() -> io::Result<()> {
+    let mut output = Vec::new();
+
     let stdout = io::stdout();
     let mut handle = stdout.lock();
 
     let f = File::open("/home/pi/2022_place_canvas_history.csv.gzip")?;
     let mut gz = BufReader::new(GzDecoder::new(f));
 
-    let mut next_user_id = -1;
+    let mut next_user_id = 0;
     //let mut next_pixel_color = -1;
-    let mut user_ids = FxHashMap::default();
+    let mut user_ids = FxHashMap::with_capacity_and_hasher(10381162, BuildHasherDefault::<FxHasher>::default());
     //let mut pixel_colors = FxHashMap::default();
     let mut line = Vec::<u8>::new();
     let mut number_of_bytes_read = 0;
@@ -35,20 +62,29 @@ fn main() -> io::Result<()> {
         }
         number_of_bytes_read += line_length;
         if number_of_bytes_read % (256 * 1024) == 0 {
-            eprintln!("{} %", f64::from(u32::try_from(number_of_bytes_read).unwrap()) / 21714634193f64);
+            eprintln!("{} %", f64::from(u32::try_from(number_of_bytes_read/1024).unwrap()) / f64::from(21205697));
         }
 
         // unfortunately already timestamps can have two digit or three digit milliseconds so we need to split the data. userid and colors should be the same though
         let mut it = line.split(|c| *c == b',');
         let timestamp = it.next().unwrap();
+        let timestamp = std::str::from_utf8(timestamp).unwrap();
+
+        //writeln!(handle, "{}", timestamp)?;
+
+        let timestamp = PrimitiveDateTime::parse(timestamp, &format1).or_else(|_| PrimitiveDateTime::parse(timestamp, &format2)).unwrap();
+
+        let timestamp = timestamp.assume_utc();
+
         let mut user_id = vec![0; 64];
         assert_eq!(64, decode_config_slice(it.next().unwrap(), STANDARD, &mut user_id).unwrap());
         let user_id = match user_ids.get(&user_id) {
             Some(v) => *v,
             None => {
-                next_user_id += 1;
                 user_ids.insert(user_id.clone(), next_user_id);
-                next_user_id
+                let ret = next_user_id;
+                next_user_id += 1;
+                ret
             }
         };
         let pixel_color = u32::from_str_radix(std::str::from_utf8(&it.next().unwrap()[1..]).unwrap(), 16).unwrap();
@@ -98,9 +134,27 @@ fn main() -> io::Result<()> {
         let coordinate_x = std::str::from_utf8(&it.next().unwrap()[1..]).unwrap().parse::<u16>().unwrap();
         let coordinate_y = it.next().unwrap();
         let coordinate_y = std::str::from_utf8(&coordinate_y[..coordinate_y.len()-2]).unwrap().parse::<u16>().unwrap();
-        writeln!(handle, "{},{},{},{},{}", std::str::from_utf8(timestamp).unwrap(), user_id, pixel_color, coordinate_x, coordinate_y)?;
+
+        let value = RPlacePixel {
+            user: user_id,
+            x: coordinate_x,
+            y: coordinate_y,
+            timestamp_millis: timestamp.millisecond(),
+            timestamp_seconds: timestamp.second(),
+            timestamp_minutes: timestamp.minute(),
+            timestamp_hours: timestamp.hour(),
+            timestamp_days: timestamp.day(),
+            color: pixel_color,
+        };
+
+        output.push(value);
+
+        //writeln!(handle, "{},{},{},{},{}", timestamp, user_id, pixel_color, coordinate_x, coordinate_y)?;
         line.clear();
     }
+
+
+    output.serialize(&mut Serializer::new(File::create("test.bin")?)).unwrap();
 
     //eprintln!("{:#?}", pixel_colors);
     eprintln!("user count: {}", next_user_id);
