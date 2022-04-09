@@ -23,25 +23,33 @@ pub struct RPlacePixelData {
 pub type RPlacePixel = GeomWithData<[i16; 2], RPlacePixelData>;
 
 pub fn write_rplacepixel<W: Write>(rplacepixel: &RPlacePixel, write: &mut W) {
-    write.write(&rplacepixel.geom()[0].to_ne_bytes()).unwrap();
-    write.write(&rplacepixel.geom()[1].to_ne_bytes()).unwrap();
-    write.write(&rplacepixel.data.user.to_ne_bytes()).unwrap();
     write
-        .write(&rplacepixel.data.timestamp_millis.to_ne_bytes())
+        .write_all(&rplacepixel.geom()[0].to_ne_bytes())
         .unwrap();
     write
-        .write(&rplacepixel.data.timestamp_seconds.to_ne_bytes())
+        .write_all(&rplacepixel.geom()[1].to_ne_bytes())
         .unwrap();
     write
-        .write(&rplacepixel.data.timestamp_minutes.to_ne_bytes())
+        .write_all(&rplacepixel.data.user.to_ne_bytes())
         .unwrap();
     write
-        .write(&rplacepixel.data.timestamp_hours.to_ne_bytes())
+        .write_all(&rplacepixel.data.timestamp_millis.to_ne_bytes())
         .unwrap();
     write
-        .write(&rplacepixel.data.timestamp_days.to_ne_bytes())
+        .write_all(&rplacepixel.data.timestamp_seconds.to_ne_bytes())
         .unwrap();
-    write.write(&rplacepixel.data.color.to_ne_bytes()).unwrap();
+    write
+        .write_all(&rplacepixel.data.timestamp_minutes.to_ne_bytes())
+        .unwrap();
+    write
+        .write_all(&rplacepixel.data.timestamp_hours.to_ne_bytes())
+        .unwrap();
+    write
+        .write_all(&rplacepixel.data.timestamp_days.to_ne_bytes())
+        .unwrap();
+    write
+        .write_all(&rplacepixel.data.color.to_ne_bytes())
+        .unwrap();
 }
 
 pub fn read_rplacepixel<R: Read>(read: &mut R) -> Result<RPlacePixel, std::io::Error> {

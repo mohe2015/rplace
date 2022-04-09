@@ -1,6 +1,6 @@
 use base64::{decode_config_slice, STANDARD};
 use flate2::read::GzDecoder;
-use rplace::{write_rplacepixel, RPlacePixel, RPlacePixelData};
+use rplace::{write_rplacepixel, RPlacePixelData};
 use rstar::primitives::GeomWithData;
 use rustc_hash::{FxHashMap, FxHasher};
 use std::fs::File;
@@ -30,7 +30,7 @@ fn main() -> io::Result<()> {
     let mut output_file = BufWriter::new(File::create("test.bin")?);
 
     let stdout = io::stdout();
-    let handle = stdout.lock();
+    let _handle = stdout.lock();
 
     let f = File::open("/home/pi/2022_place_canvas_history.csv.gzip")?;
     let mut gz = BufReader::new(GzDecoder::new(f));

@@ -4,7 +4,7 @@ use std::{
 };
 
 use rplace::{read_rplacepixel, RPlacePixel};
-use rstar::{primitives::GeomWithData, RTree, AABB};
+use rstar::{RTree, AABB};
 
 fn main() -> io::Result<()> {
     let mut bf = BufReader::new(File::open("test.bin")?);
@@ -12,11 +12,8 @@ fn main() -> io::Result<()> {
     println!("Start loading points");
 
     let mut result: Vec<RPlacePixel> = Vec::with_capacity(160353120);
-    loop {
-        match read_rplacepixel(&mut bf) {
-            Ok(v) => result.push(v),
-            Err(_) => break,
-        }
+    while let Ok(v) = read_rplacepixel(&mut bf) {
+        result.push(v);
     }
 
     println!("Done loading points. Start sorting points.");
@@ -37,7 +34,7 @@ fn main() -> io::Result<()> {
 
     println!("Done printing points. Start building the r-tree.");
 
-    let mut tree = RTree::bulk_load(result);
+    let tree = RTree::bulk_load(result);
 
     let square = AABB::from_corners([1, 2], [3, 4]);
 
