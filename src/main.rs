@@ -34,15 +34,11 @@ fn main() -> io::Result<()> {
             break;
         }
         number_of_bytes_read += line_length;
-        if number_of_bytes_read % (16 * 1024) == 0 {
+        if number_of_bytes_read % (256 * 1024) == 0 {
             eprintln!("{} %", f64::from(u32::try_from(number_of_bytes_read).unwrap()) / 21714634193f64);
         }
 
-        if number_of_bytes_read >= 2171463419 { // 10%
-            break; // TESTING
-        }
-
-        // almost everything in a line should be at a fixed offset so maybe cheat
+        // unfortunately already timestamps can have two digit or three digit milliseconds so we need to split the data. userid and colors should be the same though
         let mut it = line.split(|c| *c == b',');
         let timestamp = it.next().unwrap();
         let mut user_id = vec![0; 64];
