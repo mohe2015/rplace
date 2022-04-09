@@ -1,12 +1,22 @@
 use std::io::{self, BufReader};
-use flate2::bufread::GzDecoder;
+use flate2::read::GzDecoder;
 use std::io::prelude::*;
 use std::fs::File;
 use std::collections::HashMap;
 
+// rustc-hash
+
+// almost everything in a line should be at a fixed offset so maybe cheat
+
+// lines() probably allocates
+
+// replace the gunzip implementation at it needs 50% of the runtime (probably not avoidable)
+
 fn main() -> io::Result<()> {
+    let stdout = io::stdout();
+    let mut handle = stdout.lock();
+
     let f = File::open("/home/pi/2022_place_canvas_history.csv.gzip")?;
-    let f = BufReader::new(f);
 
     let gz = BufReader::new(GzDecoder::new(f));
 
@@ -19,13 +29,29 @@ fn main() -> io::Result<()> {
         let mut it = line.split(',');
         let timestamp = it.next().unwrap();
         let user_id = it.next().unwrap();
-        let user_id = user_ids.entry(user_id.to_string()).or_insert_with(|| { next_user_id += 1; next_user_id });
+        // maybe base64 decode
+        let user_id = match user_ids.get(user_id) {
+            Some(v) => *v,
+            None => {
+                next_user_id += 1;
+                user_ids.insert(user_id.to_string(), next_user_id);
+                next_user_id
+            }
+        };
         let pixel_color = &it.next().unwrap()[1..];
-        let pixel_color = pixel_colors.entry(pixel_color.to_string()).or_insert_with(|| { next_pixel_color += 1; next_pixel_color });
+        // maybe hex decode or store statically as the colors should be known
+        let pixel_color = match pixel_colors.get(pixel_color) {
+            Some(v) => *v,
+            None => {
+                next_pixel_color += 1;
+                pixel_colors.insert(pixel_color.to_string(), next_pixel_color);
+                next_pixel_color
+            }
+        };
         let coordinate_x = &it.next().unwrap()[1..];
         let coordinate_y = it.next().unwrap();
         let coordinate_y = &coordinate_y[..coordinate_y.len()-1];
-        println!("{},{},{},{},{}", timestamp, user_id, pixel_color, coordinate_x, coordinate_y);
+        write!(handle, "{},{},{},{},{}", timestamp, user_id, pixel_color, coordinate_x, coordinate_y)?;
     }
 
     eprintln!("{:#?}", pixel_colors);
