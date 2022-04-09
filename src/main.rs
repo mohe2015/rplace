@@ -5,8 +5,6 @@ use std::fs::File;
 use rustc_hash::FxHashMap;
 use base64::{decode_config_slice, STANDARD};
 
-// almost everything in a line should be at a fixed offset so maybe cheat
-
 // cat /home/pi/2022_place_canvas_history.csv.gzip | gunzip | wc -c
 // 21714634193
 // ~22 GB
@@ -23,9 +21,24 @@ fn main() -> io::Result<()> {
     let mut user_ids = FxHashMap::default();
     let mut pixel_colors = FxHashMap::default();
     let mut line = Vec::<u8>::new();
+    let mut number_of_bytes_read = 0;
     gz.read_until(b'\n', &mut line)?; // drop header
     line.clear();
-    while gz.read_until(b'\n', &mut line)? != 0 {
+    loop {
+        let line_length = gz.read_until(b'\n', &mut line)?;
+        if line_length == 0 {
+            break;
+        }
+        number_of_bytes_read += line_length;
+        if number_of_bytes_read % (16 * 1024) == 0 {
+            eprintln!("{} %", f64::from(u32::try_from(number_of_bytes_read).unwrap()) / 21714634193f64);
+        }
+
+        if number_of_bytes_read >= 2171463419 {
+            break; // TESTING
+        }
+
+        // almost everything in a line should be at a fixed offset so maybe cheat
         let mut it = line.split(|c| *c == b',');
         let timestamp = it.next().unwrap();
         let mut user_id = vec![0; 64];
@@ -38,13 +51,13 @@ fn main() -> io::Result<()> {
                 next_user_id
             }
         };
-        let pixel_color = &it.next().unwrap()[1..];
-        // maybe hex decode or store statically as the colors should be known
-        let pixel_color = match pixel_colors.get(pixel_color) {
+        let pixel_color = u32::from_str_radix(std::str::from_utf8(&it.next().unwrap()[1..]).unwrap(), 16).unwrap();
+        // TODO maybe hex decode or store statically as the colors should be known
+        let pixel_color = match pixel_colors.get(&pixel_color) {
             Some(v) => *v,
             None => {
                 next_pixel_color += 1;
-                pixel_colors.insert(pixel_color.to_owned(), next_pixel_color);
+                pixel_colors.insert(pixel_color, next_pixel_color);
                 next_pixel_color
             }
         };
