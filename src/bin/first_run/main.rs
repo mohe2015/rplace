@@ -1,7 +1,7 @@
 use std::{io::{self, BufReader}, hash::BuildHasherDefault};
-use ciborium::ser::into_writer;
 use flate2::read::GzDecoder;
 use rplace::RPlacePixel;
+use rstar::primitives::GeomWithData;
 use time::{PrimitiveDateTime, macros::format_description, format_description::FormatItem};
 use std::io::prelude::*;
 use std::fs::File;
@@ -22,7 +22,7 @@ const FORMAT1: &[FormatItem] = format_description!("[year]-[month]-[day] [hour]:
 const FORMAT2: &[FormatItem] = format_description!("[year]-[month]-[day] [hour]:[minute]:[second] UTC");
 
 fn main() -> io::Result<()> {
-    let mut output = Vec::new();
+    let mut output = Vec::with_capacity(160353105);
 
     let stdout = io::stdout();
     let handle = stdout.lock();
@@ -114,21 +114,19 @@ fn main() -> io::Result<()> {
             5329490 => 12,
             _ => panic!(),
         };
-        let coordinate_x = std::str::from_utf8(&it.next().unwrap()[1..]).unwrap().parse::<u16>().unwrap();
+        let coordinate_x = std::str::from_utf8(&it.next().unwrap()[1..]).unwrap().parse::<i16>().unwrap();
         let coordinate_y = it.next().unwrap();
-        let coordinate_y = std::str::from_utf8(&coordinate_y[..coordinate_y.len()-2]).unwrap().parse::<u16>().unwrap();
+        let coordinate_y = std::str::from_utf8(&coordinate_y[..coordinate_y.len()-2]).unwrap().parse::<i16>().unwrap();
 
-        let value = RPlacePixel {
+        let value = GeomWithData::new([coordinate_x, coordinate_y], RPlacePixel {
             user: user_id,
-            x: coordinate_x,
-            y: coordinate_y,
             timestamp_millis: timestamp.millisecond(),
             timestamp_seconds: timestamp.second(),
             timestamp_minutes: timestamp.minute(),
             timestamp_hours: timestamp.hour(),
             timestamp_days: timestamp.day(),
             color: pixel_color,
-        };
+        });
 
         output.push(value);
 
@@ -136,7 +134,7 @@ fn main() -> io::Result<()> {
         line.clear();
     }
 
-    into_writer(&output, File::create("test.bin")?).unwrap();
+    bincode::serialize_into(File::create("test.bin")?, &output).unwrap();
 
     //eprintln!("{:#?}", pixel_colors);
     eprintln!("user count: {}", next_user_id);

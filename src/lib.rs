@@ -1,13 +1,13 @@
+use rstar::Point;
 use serde::{Serialize, Deserialize};
 
 
 
 
-#[derive(Serialize, Deserialize, Debug)]
+// TODO FIXME partialeq probably wrong
+#[derive(Serialize, Deserialize, Debug, Copy, Clone, PartialEq)]
 pub struct RPlacePixel {
     pub user: u32,
-    pub x: u16,
-    pub y: u16,
     pub timestamp_millis: u16,
     pub timestamp_seconds: u8,
     pub timestamp_minutes: u8,
